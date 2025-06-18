@@ -22,10 +22,15 @@ class PopulationEDA:
             return
 
         df.replace('-', 0, inplace=True)
+        missing_cols = [col for col in ['인구', '출생아수(명)', '사망자수(명)'] if col not in df.columns]
+        if missing_cols:
+            st.error(f"Missing required columns: {', '.join(missing_cols)}")
+            return
+
         try:
-            df[['인구', '출생아수(명)', '사망자수(명)']] = df[['인구', '출생아수(명)', '사망자수(명)']].astype(int)
-        except:
-            st.error("Check that required columns exist and are numeric.")
+            df[['인구', '출생아수(명)', '사망자수(명)']] = df[['인구', '출생아수(명)', '사망자수(명)']].apply(pd.to_numeric)
+        except Exception as e:
+            st.error(f"Column type conversion failed: {e}")
             return
 
         tab1, tab2, tab3, tab4, tab5 = st.tabs(["Summary", "Trend", "Regional", "Changes", "Visualization"])
@@ -114,5 +119,6 @@ class PopulationEDA:
                     "- Useful for identifying regional trends over time.")
             except:
                 st.warning("Heatmap could not be generated. Check for proper data format.")
+
 if __name__ == "__main__":
     PopulationEDA()
