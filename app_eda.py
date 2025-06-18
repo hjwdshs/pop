@@ -35,18 +35,67 @@ if "logged_in" not in st.session_state:
 
 class Login:
     def __init__(self):
-        st.title("🔐 Login")
-        st.write("로그인 기능이 아직 구현되어 있지 않습니다.")
+        st.title("🔐 로그인")
+        email = st.text_input("이메일")
+        password = st.text_input("비밀번호", type="password")
+        if st.button("로그인"):
+            try:
+                user = auth.sign_in_with_email_and_password(email, password)
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.session_state.id_token = user['idToken']
+
+                user_info = firestore.child("users").child(email.replace(".", "_")).get().val()
+                if user_info:
+                    st.session_state.user_name = user_info.get("name", "")
+                    st.session_state.user_gender = user_info.get("gender", "선택 안함")
+                    st.session_state.user_phone = user_info.get("phone", "")
+                    st.session_state.profile_image_url = user_info.get("profile_image_url", "")
+
+                st.success("로그인 성공!")
+                time.sleep(1)
+                st.rerun()
+            except Exception:
+                st.error("로그인 실패")
 
 class Register:
     def __init__(self):
-        st.title("📝 Register")
-        st.write("회원가입 기능이 아직 구현되어 있지 않습니다.")
+        st.title("📝 회원가입")
+        email = st.text_input("이메일")
+        password = st.text_input("비밀번호", type="password")
+        name = st.text_input("성명")
+        gender = st.selectbox("성별", ["선택 안함", "남성", "여성"])
+        phone = st.text_input("휴대전화번호")
+
+        if st.button("회원가입"):
+            try:
+                auth.create_user_with_email_and_password(email, password)
+                firestore.child("users").child(email.replace(".", "_")).set({
+                    "email": email,
+                    "name": name,
+                    "gender": gender,
+                    "phone": phone,
+                    "role": "user",
+                    "profile_image_url": ""
+                })
+                st.success("회원가입 성공! 로그인 페이지로 이동합니다.")
+                time.sleep(1)
+                st.switch_page("login")
+            except Exception:
+                st.error("회원가입 실패")
 
 class FindPassword:
     def __init__(self):
-        st.title("🔎 Find Password")
-        st.write("비밀번호 찾기 기능이 아직 구현되어 있지 않습니다.")
+        st.title("🔎 비밀번호 찾기")
+        email = st.text_input("이메일")
+        if st.button("비밀번호 재설정 메일 전송"):
+            try:
+                auth.send_password_reset_email(email)
+                st.success("비밀번호 재설정 이메일을 전송했습니다.")
+                time.sleep(1)
+                st.rerun()
+            except:
+                st.error("이메일 전송 실패")
 
 class Home:
     def __init__(self, login_page, register_page, findpw_page):
@@ -71,6 +120,8 @@ class Logout:
         st.title("🔓 Logout")
         st.session_state.logged_in = False
         st.success("성공적으로 로그아웃되었습니다.")
+        time.sleep(1)
+        st.rerun()
 
 class EDA:
     def __init__(self):
@@ -136,7 +187,6 @@ class EDA:
                 plt.title("Population Heatmap")
                 st.pyplot(plt.gcf())
 
-# 페이지 등록 및 실행
 Page_Login    = {"id": "login", "title": "Login", "icon": "🔐", "func": Login}
 Page_Register = {"id": "register", "title": "Register", "icon": "📝", "func": Register}
 Page_FindPW   = {"id": "find-password", "title": "Find PW", "icon": "🔎", "func": FindPassword}
