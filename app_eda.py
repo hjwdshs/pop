@@ -188,3 +188,19 @@ class EDA:
                         "- Useful for identifying regional trends over time.")
                 except:
                     st.warning("Heatmap could not be generated. Check for proper data format.")
+Page_Login    = st.Page(Login,    title="Login",    icon="🔐", url_path="login")
+Page_Register = st.Page(lambda: Register(Page_Login.url_path), title="Register", icon="📝", url_path="register")
+Page_FindPW   = st.Page(FindPassword, title="Find PW", icon="🔎", url_path="find-password")
+Page_Home     = st.Page(lambda: Home(Page_Login, Page_Register, Page_FindPW), title="Home", icon="🏠", url_path="home", default=True)
+Page_User     = st.Page(UserInfo, title="My Info", icon="👤", url_path="user-info")
+Page_Logout   = st.Page(Logout,   title="Logout",  icon="🔓", url_path="logout")
+Page_EDA      = st.Page(EDA,      title="EDA",     icon="📊", url_path="eda")
+
+# 네비게이션 실행
+if st.session_state.logged_in:
+    pages = [Page_Home, Page_User, Page_Logout, Page_EDA]
+else:
+    pages = [Page_Home, Page_Login, Page_Register, Page_FindPW]
+
+selected_page = st.navigation(pages)
+selected_page.run()
