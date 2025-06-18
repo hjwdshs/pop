@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pyrebase
 import time
@@ -102,15 +101,21 @@ class Home:
         st.title("🏠 Home")
         if st.session_state.get("logged_in"):
             st.success(f"Welcome, {st.session_state.get('user_email')}")
-        st.markdown("Go to the EDA tab to analyze population trends.")
+        st.markdown("""
+        ---
+        **EDA Menu Guide**  
+        - In the EDA tab, population trend analysis is available in addition to bike demand analysis.  
+        - Go to the `EDA` page from the sidebar to check it out!
+        """)
 
 class UserInfo:
     def __init__(self):
         st.title("👤 My Info")
-        st.write("User profile page")
+        st.write("User information page.")
 
 class Logout:
     def __init__(self):
+        st.title("🔓 Logout")
         st.session_state.logged_in = False
         st.success("You have been logged out.")
         time.sleep(1)
@@ -121,15 +126,12 @@ class EDA:
         st.title("📊 Population EDA")
         uploaded_file = st.file_uploader("Upload population_trends.csv", type=["csv"])
         if uploaded_file is not None:
-            try:
-                df = pd.read_csv(uploaded_file)
-                df.replace("-", 0, inplace=True)
-                for col in ['인구', '출생아수(명)', '사망자수(명)']:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-                df.fillna(0, inplace=True)
-            except Exception as e:
-                st.error(f"Error reading file: {e}")
-                return
+            df = pd.read_csv(uploaded_file)
+
+            df.replace('-', 0, inplace=True)
+            for col in ['인구', '출생아수(명)', '사망자수(명)']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            df.fillna(0, inplace=True)
 
             region_map = {
                 '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
@@ -140,7 +142,7 @@ class EDA:
             }
             df['region_en'] = df['지역'].map(region_map)
 
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Descriptive", "Trend", "Region", "Change", "Area Chart"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Descriptive", "Trend", "Region", "Change", "Heatmap"])
 
             with tab1:
                 st.subheader("Descriptive Statistics")
@@ -181,20 +183,17 @@ class EDA:
                 def colorize(val):
                     color = '#ffdddd' if val < 0 else '#ddeeff'
                     return f'background-color: {color}'
-                try:
-                    st.dataframe(top100.style.format({"change": ","}).applymap(colorize, subset=['change']))
-                except:
-                    st.dataframe(top100)
+                st.dataframe(top100.style.format({"change": ","}).applymap(colorize, subset=['change']))
 
             with tab5:
-                st.subheader("Stacked Area Plot")
-                pivot = df.pivot(index='연도', columns='region_en', values='인구').fillna(0)
+                st.subheader("Population Heatmap")
+                pivot = df.pivot(index='region_en', columns='연도', values='인구')
                 plt.figure(figsize=(12, 6))
-                plt.stackplot(pivot.index, pivot.T, labels=pivot.columns)
-                plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
-                plt.title("Population Stacked Area Chart")
+                ax = sns.heatmap(pivot, cmap='coolwarm')
+                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+                plt.title("Population Heatmap")
                 plt.xlabel("Year")
-                plt.ylabel("Population")
+                plt.ylabel("Region")
                 st.pyplot(plt.gcf())
 
 Page_Login    = {"id": "login", "title": "Login", "icon": "🔐", "func": Login}
