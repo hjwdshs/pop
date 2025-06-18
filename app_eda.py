@@ -189,8 +189,11 @@ class EDA:
                 st.subheader("Population Heatmap")
                 pivot = df.pivot(index='region_en', columns='연도', values='인구')
                 plt.figure(figsize=(12, 6))
-                sns.heatmap(pivot, cmap='coolwarm')
+                ax = sns.heatmap(pivot, cmap='coolwarm')
+                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
                 plt.title("Population Heatmap")
+                plt.xlabel("Year")
+                plt.ylabel("Region")
                 st.pyplot(plt.gcf())
 
 Page_Login    = {"id": "login", "title": "Login", "icon": "🔐", "func": Login}
