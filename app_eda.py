@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['axes.unicode_minus'] = False
+
 # Firebase 설정
 firebase_config = {
     "apiKey": "AIzaSyCswFmrOGU3FyLYxwbNPTp7hvQxLfTPIZw",
@@ -23,7 +26,6 @@ auth = firebase.auth()
 firestore = firebase.database()
 storage = firebase.storage()
 
-# 세션 초기화
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user_email = ""
@@ -44,14 +46,12 @@ class Login:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.id_token = user['idToken']
-
                 user_info = firestore.child("users").child(email.replace(".", "_")).get().val()
                 if user_info:
                     st.session_state.user_name = user_info.get("name", "")
                     st.session_state.user_gender = user_info.get("gender", "Unknown")
                     st.session_state.user_phone = user_info.get("phone", "")
                     st.session_state.profile_image_url = user_info.get("profile_image_url", "")
-
                 st.success("Login successful!")
                 time.sleep(1)
                 st.rerun()
@@ -66,7 +66,6 @@ class Register:
         name = st.text_input("Name")
         gender = st.selectbox("Gender", ["Unknown", "Male", "Female"])
         phone = st.text_input("Phone Number")
-
         if st.button("Register"):
             try:
                 auth.create_user_with_email_and_password(email, password)
@@ -102,7 +101,6 @@ class Home:
         st.title("🏠 Home")
         if st.session_state.get("logged_in"):
             st.success(f"Welcome, {st.session_state.get('user_email')}")
-
         st.markdown("""
         ---
         **EDA Menu Guide**  
@@ -135,6 +133,15 @@ class EDA:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
             df.fillna(0, inplace=True)
 
+            region_map = {
+                '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
+                '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
+                '경기': 'Gyeonggi', '강원': 'Gangwon', '충북': 'Chungbuk', '충남': 'Chungnam',
+                '전북': 'Jeonbuk', '전남': 'Jeonnam', '경북': 'Gyeongbuk', '경남': 'Gyeongnam',
+                '제주': 'Jeju', '전국': 'Nationwide'
+            }
+            df['region_en'] = df['지역'].map(region_map)
+
             tab1, tab2, tab3, tab4, tab5 = st.tabs(["Descriptive", "Trend", "Region", "Change", "Heatmap"])
 
             with tab1:
@@ -146,7 +153,7 @@ class EDA:
 
             with tab2:
                 st.subheader("Total Population Over Time")
-                df_total = df[df['지역'] == '전국']
+                df_total = df[df['region_en'] == 'Nationwide']
                 plt.figure(figsize=(10, 4))
                 sns.lineplot(data=df_total, x='연도', y='인구')
                 plt.title("Population Trend")
@@ -158,29 +165,29 @@ class EDA:
                 st.subheader("Regional Population Change")
                 latest_year = df['연도'].max()
                 recent = df[df['연도'].isin([latest_year, latest_year - 5])]
-                pivot = recent.pivot(index='지역', columns='연도', values='인구').drop('전국', errors='ignore')
+                pivot = recent.pivot(index='region_en', columns='연도', values='인구').drop('Nationwide', errors='ignore')
                 pivot['change'] = pivot[latest_year] - pivot[latest_year - 5]
                 pivot['rate'] = pivot['change'] / pivot[latest_year - 5] * 100
-                sorted_change = pivot.sort_values('change', ascending=False)
+                sorted_change = pivot.sort_values('change', ascending=False).reset_index()
                 plt.figure(figsize=(10, 6))
-                sns.barplot(x=sorted_change['change'] / 1000, y=sorted_change.index)
+                sns.barplot(x='change', y='region_en', data=sorted_change)
                 plt.title("Population Change (thousands)")
                 plt.xlabel("Change")
                 st.pyplot(plt.gcf())
 
             with tab4:
                 st.subheader("Top Changes")
-                df_no_total = df[df['지역'] != '전국']
-                df_no_total['증감'] = df_no_total.groupby('지역')['인구'].diff()
-                top100 = df_no_total.sort_values('증감', ascending=False).head(100)
+                df_no_total = df[df['region_en'] != 'Nationwide']
+                df_no_total['change'] = df_no_total.groupby('region_en')['인구'].diff()
+                top100 = df_no_total.sort_values('change', ascending=False).head(100)
                 def colorize(val):
                     color = '#ffdddd' if val < 0 else '#ddeeff'
                     return f'background-color: {color}'
-                st.dataframe(top100.style.format({"증감": ","}).applymap(colorize, subset=['증감']))
+                st.dataframe(top100.style.format({"change": ","}).applymap(colorize, subset=['change']))
 
             with tab5:
                 st.subheader("Population Heatmap")
-                pivot = df.pivot(index='지역', columns='연도', values='인구')
+                pivot = df.pivot(index='region_en', columns='연도', values='인구')
                 plt.figure(figsize=(12, 6))
                 sns.heatmap(pivot, cmap='coolwarm')
                 plt.title("Population Heatmap")
