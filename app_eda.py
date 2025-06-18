@@ -188,8 +188,3 @@ class EDA:
                         "- Useful for identifying regional trends over time.")
                 except:
                     st.warning("Heatmap could not be generated. Check for proper data format.")
-def main():
-    PopulationEDA()
-
-if __name__ == "__main__":
-    main()
