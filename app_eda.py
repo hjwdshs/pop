@@ -1,4 +1,3 @@
-# --- app_eda.py ---
 import streamlit as st
 import pyrebase
 import time
@@ -34,9 +33,19 @@ if "logged_in" not in st.session_state:
     st.session_state.user_phone = ""
     st.session_state.profile_image_url = ""
 
-# -------------------------
-# Home 페이지 클래스
-# -------------------------
+# 필수 클래스 정의가 누락되어 있을 수 있어 아래에 기본 틀을 추가합니다.
+class Login:
+    def __init__(self):
+        st.title("Login")
+
+class Register:
+    def __init__(self):
+        st.title("Register")
+
+class FindPassword:
+    def __init__(self):
+        st.title("Find Password")
+
 class Home:
     def __init__(self, login_page, register_page, findpw_page):
         st.title("🏠 Home")
@@ -50,9 +59,15 @@ class Home:
         - 좌측 사이드바의 `EDA` 메뉴에서 Population 분석 탭을 선택해 보세요!
         """)
 
-# -------------------------
-# EDA 페이지 클래스
-# -------------------------
+class UserInfo:
+    def __init__(self):
+        st.title("My Info")
+
+class Logout:
+    def __init__(self):
+        st.title("Logout")
+        st.session_state.logged_in = False
+
 class EDA:
     def __init__(self):
         st.title("📊 EDA 메뉴")
@@ -82,7 +97,6 @@ class EDA:
                 return
 
             df.loc[df['지역'] == '세종'] = df[df['지역'] == '세종'].replace('-', 0)
-
             region_map = {
                 '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
                 '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
@@ -188,19 +202,21 @@ class EDA:
                         "- Useful for identifying regional trends over time.")
                 except:
                     st.warning("Heatmap could not be generated. Check for proper data format.")
-Page_Login    = st.Page(Login,    title="Login",    icon="🔐", url_path="login")
-Page_Register = st.Page(lambda: Register(Page_Login.url_path), title="Register", icon="📝", url_path="register")
-Page_FindPW   = st.Page(FindPassword, title="Find PW", icon="🔎", url_path="find-password")
-Page_Home     = st.Page(lambda: Home(Page_Login, Page_Register, Page_FindPW), title="Home", icon="🏠", url_path="home", default=True)
-Page_User     = st.Page(UserInfo, title="My Info", icon="👤", url_path="user-info")
-Page_Logout   = st.Page(Logout,   title="Logout",  icon="🔓", url_path="logout")
-Page_EDA      = st.Page(EDA,      title="EDA",     icon="📊", url_path="eda")
 
-# 네비게이션 실행
+# 페이지 등록 및 실행
+Page_Login    = {"id": "login", "title": "Login", "icon": "🔐", "func": Login}
+Page_Register = {"id": "register", "title": "Register", "icon": "📝", "func": Register}
+Page_FindPW   = {"id": "find-password", "title": "Find PW", "icon": "🔎", "func": FindPassword}
+Page_Home     = {"id": "home", "title": "Home", "icon": "🏠", "func": lambda: Home(Login, Register, FindPassword)}
+Page_User     = {"id": "user-info", "title": "My Info", "icon": "👤", "func": UserInfo}
+Page_Logout   = {"id": "logout", "title": "Logout", "icon": "🔓", "func": Logout}
+Page_EDA      = {"id": "eda", "title": "EDA", "icon": "📊", "func": EDA}
+
+PAGES = [Page_Home, Page_Login, Page_Register, Page_FindPW, Page_User, Page_Logout, Page_EDA]
 if st.session_state.logged_in:
-    pages = [Page_Home, Page_User, Page_Logout, Page_EDA]
+    nav_pages = [Page_Home, Page_User, Page_Logout, Page_EDA]
 else:
-    pages = [Page_Home, Page_Login, Page_Register, Page_FindPW]
+    nav_pages = [Page_Home, Page_Login, Page_Register, Page_FindPW]
 
-selected_page = st.navigation(pages)
-selected_page.run()
+selected = st.sidebar.radio("Navigation", nav_pages, format_func=lambda x: x["title"])
+selected["func"]()
