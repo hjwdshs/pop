@@ -21,7 +21,20 @@ class PopulationEDA:
             st.error(f"File read error: {e}")
             return
 
-        df.replace('-', 0, inplace=True)
+        # '세종' 지역의 '-'만 0으로 대체
+        df.loc[df['지역'] == '세종'] = df[df['지역'] == '세종'].replace('-', 0)
+
+        # 지역명을 영문으로 변환
+        region_map = {
+            '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
+            '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
+            '경기': 'Gyeonggi', '강원': 'Gangwon', '충북': 'Chungbuk', '충남': 'Chungnam',
+            '전북': 'Jeonbuk', '전남': 'Jeonnam', '경북': 'Gyeongbuk', '경남': 'Gyeongnam',
+            '제주': 'Jeju', '전국': 'Nationwide'
+        }
+
+        df['지역'] = df['지역'].replace(region_map)
+
         missing_cols = [col for col in ['인구', '출생아수(명)', '사망자수(명)'] if col not in df.columns]
         if missing_cols:
             st.error(f"Missing required columns: {', '.join(missing_cols)}")
@@ -45,10 +58,12 @@ class PopulationEDA:
 
         with tab2:
             st.subheader("📈 Yearly Population Trend")
-            df_nat = df[df['지역'] == '전국']
+            df_nat = df[df['지역'] == 'Nationwide']
             fig, ax = plt.subplots()
             sns.lineplot(data=df_nat, x='연도', y='인구', ax=ax)
-            ax.set_title("National Population Trend")
+            ax.set_title("Population Trend by Year")
+            ax.set_xlabel("Year")
+            ax.set_ylabel("Population")
 
             recent = df_nat.sort_values('연도').tail(3)
             if len(recent) == 3:
@@ -69,26 +84,28 @@ class PopulationEDA:
             else:
                 df_5 = df[df['연도'].isin([years[-1], years[-6]])]
                 pivot = df_5.pivot(index='지역', columns='연도', values='인구')
-                pivot = pivot.drop('전국', errors='ignore')
-                pivot['증가량'] = pivot[years[-1]] - pivot[years[-6]]
-                pivot['변화율'] = (pivot['증가량'] / pivot[years[-6]]) * 100
-                top_diff = pivot.sort_values('증가량', ascending=False)
+                pivot = pivot.drop('Nationwide', errors='ignore')
+                pivot['Change'] = pivot[years[-1]] - pivot[years[-6]]
+                pivot['Rate (%)'] = (pivot['Change'] / pivot[years[-6]]) * 100
+                top_diff = pivot.sort_values('Change', ascending=False)
 
                 fig1, ax1 = plt.subplots()
-                sns.barplot(x='증가량', y=top_diff.index, data=top_diff.reset_index(), ax=ax1)
+                sns.barplot(x='Change', y=top_diff.index, data=top_diff.reset_index(), ax=ax1)
                 ax1.set_title("Population Change (5 years)")
+                ax1.set_xlabel("Change (in people)")
                 st.pyplot(fig1)
 
                 fig2, ax2 = plt.subplots()
-                sns.barplot(x='변화율', y=top_diff.index, data=top_diff.reset_index(), ax=ax2)
+                sns.barplot(x='Rate (%)', y=top_diff.index, data=top_diff.reset_index(), ax=ax2)
                 ax2.set_title("Change Rate (%)")
+                ax2.set_xlabel("Rate of Change (%)")
                 st.pyplot(fig2)
 
         with tab4:
             st.subheader("📈 Top 100 Change Cases")
-            df_sorted = df[df['지역'] != '전국'].copy()
-            df_sorted['증감'] = df_sorted.groupby('지역')['인구'].diff()
-            top100 = df_sorted.nlargest(100, '증감')
+            df_sorted = df[df['지역'] != 'Nationwide'].copy()
+            df_sorted['Change'] = df_sorted.groupby('지역')['인구'].diff()
+            top100 = df_sorted.nlargest(100, 'Change')
 
             def color_scale(val):
                 color = 'background-color: '
@@ -101,10 +118,10 @@ class PopulationEDA:
                 return color
 
             try:
-                styled_df = top100.style.format({'인구': "{:,}", '증감': "{:,}"}).applymap(color_scale, subset=['증감'])
+                styled_df = top100.style.format({'인구': "{:,}", 'Change': "{:,}"}).applymap(color_scale, subset=['Change'])
                 st.dataframe(styled_df)
             except:
-                st.dataframe(top100[['연도', '지역', '인구', '증감']])
+                st.dataframe(top100[['연도', '지역', '인구', 'Change']])
 
         with tab5:
             st.subheader("📊 Heatmap")
