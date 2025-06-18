@@ -103,9 +103,20 @@ class Home:
             st.success(f"Welcome, {st.session_state.get('user_email')}")
         st.markdown("""
         ---
-        **EDA Menu Guide**  
-        - In the EDA tab, population trend analysis is available in addition to bike demand analysis.  
-        - Go to the `EDA` page from the sidebar to check it out!
+        **📊 기말 수행평가 안내: 지역별 인구 분석 웹앱 프로젝트**
+
+        본 웹앱은 `population_trends.csv` 파일을 기반으로 하여, 연도별 및 지역별 인구 데이터를 시각적으로 분석하는 프로젝트입니다.
+
+        주요 기능은 다음과 같습니다:
+        - 연도별 인구 변화 추이 확인
+        - 지역별 인구 변화량 및 증감률 분석
+        - 누적 영역 그래프를 통한 전체 인구 흐름 시각화
+        - 결측값 및 중복값 점검을 통한 데이터 정제
+
+        👉 왼쪽 사이드바에서 `EDA` 탭을 선택하여 분석을 시작하세요.
+        👉 회원가입 및 로그인 후 사용자 정보를 수정할 수 있으며, Firebase 연동이 적용되어 있습니다.
+
+        생성형 AI의 도움을 받아 설계된 이 앱은 실제 데이터 분석 실습과 Streamlit 웹앱 개발 능력 향상을 목표로 합니다.
         """)
 
 class UserInfo:
@@ -142,7 +153,7 @@ class EDA:
             }
             df['region_en'] = df['지역'].map(region_map)
 
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Descriptive", "Trend", "Region", "Change", "Heatmap"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Descriptive", "Trend", "Region", "Change", "Area Chart"])
 
             with tab1:
                 st.subheader("Descriptive Statistics")
@@ -186,14 +197,14 @@ class EDA:
                 st.dataframe(top100.style.format({"change": ","}).applymap(colorize, subset=['change']))
 
             with tab5:
-                st.subheader("Population Heatmap")
-                pivot = df.pivot(index='region_en', columns='연도', values='인구')
+                st.subheader("Population Stacked Area Chart")
+                pivot = df.pivot(index='연도', columns='region_en', values='인구').fillna(0)
                 plt.figure(figsize=(12, 6))
-                ax = sns.heatmap(pivot, cmap='coolwarm')
-                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
-                plt.title("Population Heatmap")
+                plt.stackplot(pivot.index, pivot.T, labels=pivot.columns)
+                plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
+                plt.title("Stacked Area Chart of Population")
                 plt.xlabel("Year")
-                plt.ylabel("Region")
+                plt.ylabel("Population")
                 st.pyplot(plt.gcf())
 
 Page_Login    = {"id": "login", "title": "Login", "icon": "🔐", "func": Login}
